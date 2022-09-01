@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>hejiajun</Authors>
+    <Description>Implements Microsoft.Extensions.Localization.Abstractions localization using YAML files</Description>
+    <PackageProjectUrl>https://github.com/hejiajun107/Localization.Yaml</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
