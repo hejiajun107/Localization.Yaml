@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -19,6 +20,7 @@ namespace Localization.Yaml
         private readonly string _resourceName;
         private readonly ResourcesPathType _resourcesPathType;
         private readonly ILogger _logger;
+        YamlLocalizationOptions _options;
 
         private string _searchedLocation;
 
@@ -31,6 +33,8 @@ namespace Localization.Yaml
             _logger = logger ?? NullLogger.Instance;
             _resourcesPath = Path.Combine(AppContext.BaseDirectory, localizationOptions.ResourcesPath);
             _resourcesPathType = localizationOptions.ResourcesPathType;
+            _options = localizationOptions;
+
         }
 
         public LocalizedString this[string name]
@@ -137,43 +141,103 @@ namespace Localization.Yaml
             return _resourcesCache.GetOrAdd(culture, _ =>
             {
                 var resourceFile = "yaml";
-                if (_resourcesPathType == ResourcesPathType.TypeBased)
+
+                if(_options.BuildType == ResourceBuildType.FileSystem)
+                {
+                    if (_resourcesPathType == ResourcesPathType.TypeBased)
+                    {
+                        resourceFile = $"{culture}.yaml";
+                        if (_resourceName != null)
+                        {
+                            resourceFile = string.Join(".", _resourceName.Replace('.', Path.DirectorySeparatorChar), resourceFile);
+                        }
+                    }
+                    else
+                    {
+                        resourceFile = string.Join(".",
+                            Path.Combine(culture, _resourceName.Replace('.', Path.DirectorySeparatorChar)), resourceFile);
+                    }
+
+                    _searchedLocation = Path.Combine(_resourcesPath, resourceFile);
+                    Dictionary<string, string> value = null;
+
+                    if (File.Exists(_searchedLocation))
+                    {
+                        var content = File.ReadAllText(_searchedLocation, System.Text.Encoding.UTF8);
+                        if (!string.IsNullOrWhiteSpace(content))
+                        {
+                            try
+                            {
+                                var deserializer = new DeserializerBuilder()
+                                .Build();
+
+                                value = deserializer.Deserialize<Dictionary<string, string>>(content.Trim());
+                            }
+                            catch (Exception e)
+                            {
+                                _logger.LogWarning(e, $"invalid yaml content, path: {_searchedLocation}, content: {content}");
+                            }
+                        }
+                    }
+                    return value;
+                }
+                else if(_options.BuildType == ResourceBuildType.Embeded)
                 {
                     resourceFile = $"{culture}.yaml";
+                  
+
+                    Dictionary<string, string> value = null;
+
+                    if(_options.ResourceAssemblyType is null)
+                    {
+                        throw new Exception("The ResourceAssemblyType was not defined.");
+                    }
+
+                    Assembly assembly = Assembly.GetAssembly(_options.ResourceAssemblyType);
+                    var resourses =  assembly.GetManifestResourceNames();
+
                     if (_resourceName != null)
                     {
-                        resourceFile = string.Join(".", _resourceName.Replace('.', Path.DirectorySeparatorChar), resourceFile);
+                        resourceFile = string.Join(".", _options.ResourceAssemblyType.Namespace, _options.ResourcesPath, $"{_resourceName}_{resourceFile}");
                     }
+
+                    // 获取嵌入的资源流
+                    using (Stream stream = assembly.GetManifestResourceStream(resourceFile))
+                    {
+                        // 确保资源存在
+                        if (stream == null)
+                        {
+                            throw new Exception("The embedded resource was not found.");
+                        }
+
+                        // 读取流内容
+                        using (StreamReader reader = new StreamReader(stream))
+                        {
+                            string content = reader.ReadToEnd();
+                            if (!string.IsNullOrWhiteSpace(content))
+                            {
+                                try
+                                {
+                                    var deserializer = new DeserializerBuilder()
+                                    .Build();
+
+                                    value = deserializer.Deserialize<Dictionary<string, string>>(content.Trim());
+                                }
+                                catch (Exception e)
+                                {
+                                    _logger.LogWarning(e, $"invalid yaml content, path: {_searchedLocation}, content: {content}");
+                                }
+                            }
+                        }
+                    }
+            
+                    return value;
                 }
                 else
                 {
-                    resourceFile = string.Join(".",
-                        Path.Combine(culture, _resourceName.Replace('.', Path.DirectorySeparatorChar)), resourceFile);
+                    throw new NotSupportedException("Unexpected ResourceBuildType");
                 }
-
-                _searchedLocation = Path.Combine(_resourcesPath, resourceFile);
-                Dictionary<string, string> value = null;
-
-                if (File.Exists(_searchedLocation))
-                {
-                    var content = File.ReadAllText(_searchedLocation, System.Text.Encoding.UTF8);
-                    if (!string.IsNullOrWhiteSpace(content))
-                    {
-                        try
-                        {
-                            var deserializer = new DeserializerBuilder()
-                            .Build();
-
-                            value = deserializer.Deserialize<Dictionary<string, string>>(content.Trim());
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.LogWarning(e, $"invalid yaml content, path: {_searchedLocation}, content: {content}");
-                        }
-                    }
-                }
-
-                return value;
+             
             });
         }
     }

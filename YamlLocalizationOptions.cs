@@ -1,4 +1,6 @@
-﻿namespace Localization.Yaml
+﻿using System;
+
+namespace Localization.Yaml
 {
     public class YamlLocalizationOptions
     {
@@ -17,6 +19,18 @@
         /// use entry assembly name by default
         /// </summary>
         public string RootNamespace { get; set; }
+
+        public ResourceBuildType BuildType { get; set; } = ResourceBuildType.FileSystem;
+
+        public Type ResourceAssemblyType { get; set; } = null;
+
+
+    }
+
+    public enum ResourceBuildType
+    {
+        FileSystem,
+        Embeded
     }
 
     public enum ResourcesPathType
