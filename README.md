@@ -10,7 +10,8 @@ support:
 
 * [x] asp.net core
 * [x] blazor server
-* [x] blazor wasm (embeded resourceSS)
+* [x] blazor wasm (embeded resource)
+* [x] blazor auto (embeded resource)
 
 ## GetStarted
 
