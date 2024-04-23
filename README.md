@@ -15,6 +15,11 @@ support:
 
 ## GetStarted
 
+### Install
+```
+dotnet add package Localization.Yaml --version 8.0.0
+```
+
 register required services:
 
 ```csharp
@@ -38,7 +43,7 @@ app.UseRequestLocalization();
 
 Resource.zh-CN.yaml
 
-```
+```yaml
 Hello : 你好
 ```
 
@@ -46,6 +51,6 @@ Hello : 你好
 
 Resource<span style="color: red;">_</span>zh-CN.yaml
 
-```
+```yaml
 Hello : 你好
 ```
