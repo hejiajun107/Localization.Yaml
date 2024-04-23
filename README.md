@@ -49,7 +49,7 @@ Hello : 你好
 
 ### EmbededResource
 
-Resource<span style="color: red;">_</span>zh-CN.yaml
+Resource_zh-CN.yaml
 
 ```yaml
 Hello : 你好
